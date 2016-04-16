@@ -1,0 +1,6 @@
+.build*/*
+.build_debug*/*
+projects/videovec_embedding/*.caffemodel
+projects/videovec_embedding/*.solverstate
+models*/*
+sample_data*/*

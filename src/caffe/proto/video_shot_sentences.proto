@@ -1,0 +1,38 @@
+syntax = "proto2";
+
+import "caffe.proto";
+
+package video_shot_sentences;
+
+message VideoShotWindow {
+  optional int32 video_id = 1; // Video id required for paragraph models
+  optional int32 shot_id = 2; // shot id of the word
+  optional string video_name = 3; // Name of the video file
+  optional caffe.Datum target_shot_word = 4; // The target shot which is to be predicted
+  repeated caffe.Datum context_shot_words = 5; // The shot words which are in the context
+}
+
+message VideoShots {
+  optional int32 video_id = 1; // Video id required for paragraph models
+  repeated int32 shot_ids = 2; // shots ids for the shots
+  repeated caffe.Datum shot_words = 3; // shots in the video
+  optional string video_name = 4; // name of the video
+}
+
+message TestVideoShotWindows {
+  optional int32 video_id = 1; // Video id required for paragraph models
+  repeated int32 positive_shot_id = 2; // shot id of the positive word
+  optional string video_name = 3; // Name of the video file
+  repeated caffe.Datum positive_shot_words = 4; // The target shots which is to be predicted
+  repeated caffe.Datum context_shot_words = 5; // The shot words which are in the context
+  repeated caffe.Datum negative_shot_words = 6; // Negatives from same video
+  repeated int32 negative_shot_id = 7; // shot id of the negative word
+}
+
+//message VideoShotWindow {
+//  optional int32 video_id = 1;
+//  //optional string video_name = 2;
+//  optional caffe.Datum target_shot_word = 4;
+//  repeated caffe.Datum context_shot_words = 5;
+//  optional string video_name = 2;
+//}

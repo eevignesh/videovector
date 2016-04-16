@@ -1,0 +1,689 @@
+name: "med_c5_euclid_d4096"
+layers {
+  name: "shot_windows"
+  type: VIDEO_SAMPLED_SHOTS_DATA
+  top: "data"
+  #top: "video_id_train"
+  video_sampled_shots_data_param {
+####################################################################    
+#Change the path of this file accordingly after you download the lmdb.
+####################################################################    
+    source: "/scr/r6/vigneshr/ICCV2015/data/med_full_devtest_sampled_frames_min5_max1000_lmdb/"
+    backend: LMDB
+    batch_size: 128
+
+# Negative buffer parameter
+    num_negative_samples: 10
+    max_buffer_size: 5000
+    negative_swap_percentage: 50
+    max_same_video_negs: 6
+
+# Context parameters
+    context_type: WINDOW
+    context_size: 5
+  }
+
+  include: { phase: TRAIN }
+}
+
+
+layers {
+  name: "shot_windows"
+  type: VIDEO_SHOT_WINDOW_TEST_DATA
+  top: "data"
+  top: "video_ids"
+  video_shot_window_test_data_param {
+####################################################################    
+#Change the path of this file accordingly after you download the lmdb.
+#################################################################### 
+    source: "/scr/r6/vigneshr/ICCV2015/data/med_test_event_kit_shot_c4_for_test_sample0"
+    backend: LMDB
+    batch_size: 673
+  }
+
+  include: { phase: TEST}
+}
+
+
+layers {
+  name: "slice_input_data"
+  type: SLICE
+  bottom: "data"
+  top: "target_datum"
+  top: "context_datum_1"
+  top: "context_datum_2"
+  top: "context_datum_3"
+  top: "context_datum_4"
+  top: "negative_datum_1"
+  top: "negative_datum_2"
+  top: "negative_datum_3"
+  top: "negative_datum_4"
+  top: "negative_datum_5"
+  top: "negative_datum_6"
+  top: "negative_datum_7"
+  top: "negative_datum_8"
+  top: "negative_datum_9"
+  top: "negative_datum_10"
+
+  slice_param {
+    slice_dim: 1  
+  }
+  include: { phase: TRAIN }
+
+}
+
+layers {
+  name: "slice_input_data"
+  type: SLICE
+  bottom: "data"
+  top: "context_datum_1"
+  top: "context_datum_2"
+  top: "context_datum_3"
+  top: "context_datum_4"
+  slice_param {
+    slice_dim: 1  
+  }
+
+  include: { phase: TEST }
+}
+
+layers {
+  name: "batch_concat_input_test"
+  type: CONCAT
+  bottom: "context_datum_1"
+  bottom: "context_datum_2"
+  bottom: "context_datum_3"
+  bottom: "context_datum_4"
+  top: "concat_input_datums"
+  concat_param {
+    concat_dim: 0  
+  }
+
+  include: { phase: TEST }
+
+}
+
+layers {
+  name: "batch_concat_input"
+  type: CONCAT
+  bottom: "target_datum"
+  bottom: "context_datum_1"
+  bottom: "context_datum_2"
+  bottom: "context_datum_3"
+  bottom: "context_datum_4"
+  bottom: "negative_datum_1"
+  bottom: "negative_datum_2"
+  bottom: "negative_datum_3"
+  bottom: "negative_datum_4"
+  bottom: "negative_datum_5"
+  bottom: "negative_datum_6"
+  bottom: "negative_datum_7"
+  bottom: "negative_datum_8"
+  bottom: "negative_datum_9"
+  bottom: "negative_datum_10"
+  top: "concat_input_datums"
+  concat_param {
+    concat_dim: 0  
+  }
+
+  include: { phase: TRAIN }
+
+}
+
+layers {
+  name: "flatten_input"
+  type: FLATTEN
+  bottom: "concat_input_datums"
+  top: "concat_input_datums_flat"
+
+  include: { phase: TEST }
+}
+
+
+layers {
+  name: "slice_test"
+  type: SLICE
+  bottom: "concat_input_datums_flat"
+  top: "test_sample_frame_1"
+  top: "test_sample_frame_2"
+  top: "test_sample_frame_3"
+  top: "test_sample_frame_4"
+  slice_param {
+    slice_dim: 0  
+  }  
+  
+  include: { phase: TEST }
+}
+
+layers {
+  name: "average_for_test"
+  type: ELTWISE
+  bottom: "test_sample_frame_1"
+  bottom: "test_sample_frame_2"
+  bottom: "test_sample_frame_3"
+  bottom: "test_sample_frame_4"
+  top: "original_feature"
+  
+  eltwise_param {
+    operation: SUM
+    coeff: 0.25
+    coeff: 0.25
+    coeff: 0.25
+    coeff: 0.25  
+    
+  }  
+ 
+  include: { phase: TEST } 
+}
+
+layers {
+  name: "flatten_input"
+  type: FLATTEN
+  bottom: "concat_input_datums"
+  top: "original_feature"
+
+  include: { phase: TRAIN }
+}
+
+
+
+layers {
+  name: "fc7"
+  type: INNER_PRODUCT
+  bottom: "original_feature"
+  top: "ip1_nonorm"
+  blobs_lr: 1
+  blobs_lr: 2
+  weight_decay: 1
+  weight_decay: 0
+  inner_product_param {
+    num_output: 4096
+    weight_filler {
+      type: "gaussian"
+      std: 0.001
+    }
+    bias_filler {
+      type: "constant"
+    }
+  }
+
+}
+
+layers {
+  name: "fc7_relu"
+  type: RELU
+  top: "ip2"
+  bottom: "ip1_nonorm"  
+}
+
+
+layers {
+  name: "drop2"
+  type: DROPOUT
+  bottom: "ip2"
+  top: "ip2"
+  dropout_param {
+    dropout_ratio: 0.9
+  }
+
+  include: { phase: TRAIN }
+}
+
+layers {
+  name: "slice_emb"
+  type: SLICE
+  bottom: "ip2"
+  top: "target_emb_nonorm"
+  top: "context_window_emb_1_nonorm"
+  top: "context_window_emb_2_nonorm"
+  top: "context_window_emb_3_nonorm"
+  top: "context_window_emb_4_nonorm"
+  top: "negative_emb_1_nonorm"
+  top: "negative_emb_2_nonorm"
+  top: "negative_emb_3_nonorm"
+  top: "negative_emb_4_nonorm"
+  top: "negative_emb_5_nonorm"
+  top: "negative_emb_6_nonorm"
+  top: "negative_emb_7_nonorm"
+  top: "negative_emb_8_nonorm"
+  top: "negative_emb_9_nonorm"
+  top: "negative_emb_10_nonorm"
+
+  slice_param {
+    slice_dim: 0
+  }
+  include: { phase: TRAIN }
+
+}
+
+
+layers {
+  name: "context_average"
+  type: ELTWISE
+  bottom: "context_window_emb_1_nonorm"
+  bottom: "context_window_emb_2_nonorm"
+  bottom: "context_window_emb_3_nonorm"
+  bottom: "context_window_emb_4_nonorm"
+  top: "context_feature_nonorm"
+
+  eltwise_param {
+    operation: SUM
+    coeff: 0.25
+    coeff: 0.25
+    coeff: 0.25
+    coeff: 0.25
+  }
+
+  include: { phase: TRAIN }
+}
+
+
+layers {
+  name: "word_embedding_norm"
+  type: NORMALIZATION
+  bottom: "context_feature_nonorm"
+  top: "context_feature"
+  
+  include: { phase: TRAIN }
+}
+
+layers {
+  name: "concat_pos_neg_nonorm"
+  type: CONCAT 
+  top: "pos_neg_nonorm"
+  bottom: "target_emb_nonorm"
+  bottom: "negative_emb_1_nonorm"
+  bottom: "negative_emb_2_nonorm"
+  bottom: "negative_emb_3_nonorm"
+  bottom: "negative_emb_4_nonorm"
+  bottom: "negative_emb_5_nonorm"
+  bottom: "negative_emb_6_nonorm"
+  bottom: "negative_emb_7_nonorm"
+  bottom: "negative_emb_8_nonorm"
+  bottom: "negative_emb_9_nonorm"
+  bottom: "negative_emb_10_nonorm"
+
+  concat_param {
+    concat_dim: 0
+  }
+  include: { phase: TRAIN }
+}
+
+layers {
+  name: "pos_neg_normalize"
+  type: NORMALIZATION
+  bottom: "pos_neg_nonorm"
+  top: "pos_neg_norm"
+  
+  include: { phase: TRAIN }
+}
+
+
+layers {
+  name: "slice_pos_neg_norm"
+  type: SLICE
+  bottom: "pos_neg_norm"
+  top: "target_emb"
+  top: "negative_emb_1"
+  top: "negative_emb_2"
+  top: "negative_emb_3"
+  top: "negative_emb_4"
+  top: "negative_emb_5"
+  top: "negative_emb_6"
+  top: "negative_emb_7"
+  top: "negative_emb_8"
+  top: "negative_emb_9"
+  top: "negative_emb_10"
+
+  slice_param {
+    slice_dim: 0
+  }
+  include: { phase: TRAIN }
+}
+
+
+layers {
+  name: "test_norm"
+  type: NORMALIZATION
+  bottom: "ip2"
+  top: "ip2_norm"
+
+  include: { phase: TEST }
+}
+
+layers {
+  name: "prod_true"
+  type: ELTWISE
+  bottom: "context_feature"  
+  bottom: "target_emb"
+  top: "target_prod"
+  
+  eltwise_param {
+    operation: PROD  
+  }
+  include: { phase: TRAIN }
+
+}
+
+layers {
+  name: "sum_true"
+  type: SUM
+  bottom: "target_prod"
+  top: "target_score"
+  
+  sum_param {
+    num_output: 10
+  }
+  include: { phase: TRAIN }
+
+}
+
+# Negative 1
+
+layers {
+  name: "prod_neg_1"
+  type: ELTWISE
+  bottom: "context_feature"  
+  bottom: "negative_emb_1"
+  top: "negative_emb_1_prod"
+  
+  eltwise_param {
+    operation: PROD  
+  }
+  include: { phase: TRAIN }
+
+}
+
+layers {
+  name: "sum_neg_1"
+  type: SUM
+  bottom: "negative_emb_1_prod"
+  top: "neg_score_1"
+  include: { phase: TRAIN }
+
+}
+
+# Negative 2
+
+layers {
+  name: "prod_neg_2"
+  type: ELTWISE
+  bottom: "context_feature"  
+  bottom: "negative_emb_2"
+  top: "negative_emb_2_prod"
+  
+  eltwise_param {
+    operation: PROD  
+  }
+  include: { phase: TRAIN }
+
+}
+
+layers {
+  name: "sum_neg_2"
+  type: SUM
+  bottom: "negative_emb_2_prod"
+  top: "neg_score_2"
+  include: { phase: TRAIN }
+
+}
+
+# Negative 3
+
+layers {
+  name: "prod_neg_3"
+  type: ELTWISE
+  bottom: "context_feature"  
+  bottom: "negative_emb_3"
+  top: "negative_emb_3_prod"
+  
+  eltwise_param {
+    operation: PROD  
+  }
+  include: { phase: TRAIN }
+
+}
+
+layers {
+  name: "sum_neg_3"
+  type: SUM
+  bottom: "negative_emb_3_prod"
+  top: "neg_score_3"
+  include: { phase: TRAIN }
+
+}
+
+# Negative 4
+
+layers {
+  name: "prod_neg_4"
+  type: ELTWISE
+  bottom: "context_feature"  
+  bottom: "negative_emb_4"
+  top: "negative_emb_4_prod"
+  
+  eltwise_param {
+    operation: PROD  
+  }
+  include: { phase: TRAIN }
+
+}
+
+layers {
+  name: "sum_neg_4"
+  type: SUM
+  bottom: "negative_emb_4_prod"
+  top: "neg_score_4"
+  include: { phase: TRAIN }
+
+}
+
+# Negative 5
+
+layers {
+  name: "prod_neg_5"
+  type: ELTWISE
+  bottom: "context_feature"  
+  bottom: "negative_emb_5"
+  top: "negative_emb_5_prod"
+  
+  eltwise_param {
+    operation: PROD  
+  }
+  include: { phase: TRAIN }
+
+}
+
+layers {
+  name: "sum_neg_5"
+  type: SUM
+  bottom: "negative_emb_5_prod"
+  top: "neg_score_5"
+  include: { phase: TRAIN }
+
+}
+
+# Negative 6
+
+layers {
+  name: "prod_neg_6"
+  type: ELTWISE
+  bottom: "context_feature"  
+  bottom: "negative_emb_6"
+  top: "negative_emb_6_prod"
+  
+  eltwise_param {
+    operation: PROD  
+  }
+  include: { phase: TRAIN }
+
+}
+
+layers {
+  name: "sum_neg_6"
+  type: SUM
+  bottom: "negative_emb_6_prod"
+  top: "neg_score_6"
+  include: { phase: TRAIN }
+
+}
+
+# Negative 7
+
+layers {
+  name: "prod_neg_7"
+  type: ELTWISE
+  bottom: "context_feature"  
+  bottom: "negative_emb_7"
+  top: "negative_emb_7_prod"
+  
+  eltwise_param {
+    operation: PROD  
+  }
+  include: { phase: TRAIN }
+
+}
+
+layers {
+  name: "sum_neg_7"
+  type: SUM
+  bottom: "negative_emb_7_prod"
+  top: "neg_score_7"
+  include: { phase: TRAIN }
+
+}
+
+# Negative 8
+
+layers {
+  name: "prod_neg_8"
+  type: ELTWISE
+  bottom: "context_feature"  
+  bottom: "negative_emb_8"
+  top: "negative_emb_8_prod"
+  
+  eltwise_param {
+    operation: PROD  
+  }
+  include: { phase: TRAIN }
+
+}
+
+layers {
+  name: "sum_neg_8"
+  type: SUM
+  bottom: "negative_emb_8_prod"
+  top: "neg_score_8"
+  include: { phase: TRAIN }
+
+}
+
+# Negative 9
+
+layers {
+  name: "prod_neg_9"
+  type: ELTWISE
+  bottom: "context_feature"  
+  bottom: "negative_emb_9"
+  top: "negative_emb_9_prod"
+  
+  eltwise_param {
+    operation: PROD  
+  }
+  include: { phase: TRAIN }
+
+}
+
+layers {
+  name: "sum_neg_9"
+  type: SUM
+  bottom: "negative_emb_9_prod"
+  top: "neg_score_9"
+  include: { phase: TRAIN }
+
+}
+
+# Negative 10
+
+layers {
+  name: "prod_neg_10"
+  type: ELTWISE
+  bottom: "context_feature"  
+  bottom: "negative_emb_10"
+  top: "negative_emb_10_prod"
+  
+  eltwise_param {
+    operation: PROD  
+  }
+  include: { phase: TRAIN }
+
+}
+
+layers {
+  name: "sum_neg_10"
+  type: SUM
+  bottom: "negative_emb_10_prod"
+  top: "neg_score_10"
+  include: { phase: TRAIN }
+
+}
+
+layers {
+  name: "concat_negative_scores"
+  type: CONCAT
+  bottom: "neg_score_1"
+  bottom: "neg_score_2"
+  bottom: "neg_score_3"
+  bottom: "neg_score_4"
+  bottom: "neg_score_5"
+  bottom: "neg_score_6"
+  bottom: "neg_score_7"
+  bottom: "neg_score_8"
+  bottom: "neg_score_9"
+  bottom: "neg_score_10"
+
+  top: "negative_scores"
+  concat_param {
+    concat_dim: 1  
+  }
+  include: { phase: TRAIN }
+
+}
+
+# Max-margin loss function
+
+layers {
+  name: "max_margin_loss"
+  type: MAX_MARGIN_LOSS
+  bottom: "target_score"
+  bottom: "negative_scores"
+  #bottom: "video_id_train"
+  top: "loss_output"
+  top: "train_violations"
+  loss_weight: 1.0
+  loss_weight: 0.0
+  max_margin_loss_param {
+    norm: L2
+    margin: 2.0
+  }
+  include: { phase: TRAIN }
+
+}
+
+layers {
+  name: "retrieval_stats"
+  type: RETRIEVAL_STATS
+  bottom: "ip2_norm"
+  bottom: "video_ids"
+  top: "test_map"
+  top: "test_hit_at_1"
+  top: "test_hit_at_5"
+
+  retrieval_stats_param {
+####################################################################    
+#Change the path of this file accordingly after you download the lmdb.
+#################################################################### 
+    id_to_class_file: "/scr/r6/vigneshr/ICCV2015/data/test_event_kit_id_to_class.txt"  
+  }
+  include: { phase: TEST}
+}

@@ -1,0 +1,21 @@
+syntax = "proto2";
+
+import "caffe.proto";
+
+package tracking_windows;
+
+message TrackPositions {
+  optional int32 id = 1; // the id of the object being tracked
+  repeated float x = 2; // x co-ordinate of track
+  repeated float y = 3; // y co-ordinate of track
+  optional int32 cl = 4; // class of the track
+  optional caffe.Datum static_scene = 5; // static scene matrix around track
+}
+
+message TrackingWindow {
+  repeated float observed_time = 1; // the time interval that is actually observed
+  repeated float prediction_time = 2; // the time when the position of people needs to be predicted
+  optional int32 scene_id  = 3; // the id of the scene corresponding to the track
+  
+  repeated TrackPositions track_positions = 4; // The actual observed tracks
+}
