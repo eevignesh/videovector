@@ -18,7 +18,7 @@ Download the project and model files, and unzip them in the caffe root directory
 
 ```shell
 wget http://vision.stanford.edu/vigneshr_data/ICCV15_models/models.zip
-unzip model.zip
+unzip models.zip
 ```
 
 To test feature extraction (extract our embedding) on sample data, download sample images and run feature extraction
