@@ -14,7 +14,7 @@ https://github.com/BVLC/caffe/issues
 
 ------------------------------------------------------------------------
 
-Download the project and model files, and unzip them in the caffe root directory (vigneshcaffe_release)
+Download the project and model files, and unzip them in the caffe root directory (videovector)
 
 ```shell
 wget http://vision.stanford.edu/vigneshr_data/ICCV15_models/models.zip
